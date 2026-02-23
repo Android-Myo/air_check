@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="Live Air Quality Index for Yangon Townships">
+    <meta name="theme-color" content="#e0e5ec">
+    <title>ရန်ကုန် လေထုစစ်ဆေးစနစ် | Yangon AQI</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@300;400;600;700&family=Oxanium:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg: #e0e5ec;
+            --shadow-dark: #a3b1c6;
+            --shadow-light: #ffffff;
+            --text-dark: #2d3561;
+            --text-mid: #6b7a99;
+            --text-light: #9aaac2;
+            --accent: #4a6cf7;
+            --accent-glow: rgba(74, 108, 247, 0.25);
+
+            /* AQI Colors */
+            --aqi-good: #00c48c;
+            --aqi-moderate: #ffd166;
+            --aqi-sensitive: #f97316;
+            --aqi-unhealthy: #ef4444;
+            --aqi-very-unhealthy: #8b5cf6;
+            --aqi-hazardous: #7f1d1d;
+        }
+
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Oxanium', 'Noto Sans Myanmar', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            color: var(--text-dark);
+            display: flex;
+            justify-content: center;
+        }
+
+        /* ─── APP SHELL ─── */
+        .app-shell {
+            width: 100%;
+            max-width: 420px;
+            background: var(--bg);
+            min-height: 100vh;
+            position: relative;
+            padding-bottom: 40px;
+        }
+
+        /* ─── NEUMORPHIC UTILS ─── */
+        .neo-card {
+            background: var(--bg);
+            border-radius: 24px;
+            box-shadow: 8px 8px 16px var(--shadow-dark), 
+                       -8px -8px 16px var(--shadow-light);
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .neo-inset {
+            background: var(--bg);
+            box-shadow: inset 5px 5px 10px var(--shadow-dark), 
+                        inset -5px -5px 10px var(--shadow-light);
+            border-radius: 16px;
+        }
+
+        /* ─── STATUS BAR ─── */
+        .status-bar {
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            font-size: 13px;
+            color: var(--text-mid);
+            font-weight: 600;
+        }
+
+        /* ─── HEADER ─── */
+        .header {
+            padding: 10px 24px 10px;
+            text-align: center;
+        }
+
+        .header-location {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .location-pin {
+            width: 10px;
+            height: 10px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .last-update {
+            font-size: 11px;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* ─── SELECTOR ─── */
+        .selector-container {
+            padding: 10px 24px 20px;
+        }
+
+        .neo-select-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .neo-select {
+            width: 100%;
+            padding: 16px 20px;
+            font-family: 'Noto Sans Myanmar', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-dark);
+            background: var(--bg);
+            border: none;
+            border-radius: 18px;
+            box-shadow: 6px 6px 12px var(--shadow-dark), 
+                       -6px -6px 12px var(--shadow-light);
+            appearance: none;
+            cursor: pointer;
+            outline: none;
+            transition: transform 0.2s;
+        }
+
+        .neo-select:active {
+            transform: scale(0.98);
+        }
+
+        .select-arrow {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: var(--text-mid);
+            font-size: 10px;
+        }
+
+        /* ─── AQI DISPLAY ─── */
+        .aqi-container {
+            display: flex;
+            justify-content: center;
+            padding: 10px 0 25px;
+        }
+
+        .aqi-outer {
+            width: 210px;
+            height: 210px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            box-shadow: 12px 12px 24px var(--shadow-dark), 
+                       -12px -12px 24px var(--shadow-light);
+        }
+
+        .aqi-inner {
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .aqi-value {
+            font-size: 64px;
+            font-weight: 800;
+            line-height: 1;
+            margin-top: 5px;
+            transition: color 0.5s ease;
+        }
+
+        .aqi-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-light);
+            letter-spacing: 1px;
+        }
+
+        .aqi-status {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 800;
+            margin-top: 10px;
+            color: white;
+            text-transform: uppercase;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        /* ─── STATS ─── */
+        .pollutant-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            padding: 0 24px;
+        }
+
+        .pollutant-item {
+            padding: 15px 5px;
+            text-align: center;
+        }
+
+        .pollutant-name {
+            font-size: 10px;
+            color: var(--text-light);
+            font-weight: 700;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .pollutant-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        /* ─── ADVICE ─── */
+        .info-section {
+            padding: 0 24px;
+            margin-top: 30px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-mid);
+            margin-bottom: 16px;
+            padding-left: 4px;
+        }
+
+        .health-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            margin-bottom: 14px;
+        }
+
+        .icon-box {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .health-text {
+            font-size: 13.5px;
+            font-family: 'Noto Sans Myanmar', sans-serif;
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        /* ─── LIVE DOT ─── */
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .live-dot {
+            width: 7px;
+            height: 7px;
+            background: #ff3b30;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-shell">
+    <div class="status-bar">
+        <span id="currentTime">--:--</span>
+        <div style="display: flex; gap: 10px;">
+            <span>LTE</span>
+            <span>88%</span>
+        </div>
+    </div>
+
+    <header class="header">
+        <div class="header-location">
+            <div class="location-pin"></div>
+            <h2 id="displayTownship">လှိုင်မြို့နယ်</h2>
+        </div>
+        <p class="last-update"><span class="live-dot"></span> Live • Yangon, MM</p>
+    </header>
+
+    <div class="selector-container">
+        <div class="neo-select-wrapper">
+            <select class="neo-select" id="stationSelect">
+                <!-- Options injected via JS -->
+            </select>
+            <div class="select-arrow">▼</div>
+        </div>
+    </div>
+
+    <div class="aqi-container">
+        <div class="aqi-outer">
+            <div class="aqi-inner">
+                <span class="aqi-label">US AQI</span>
+                <span class="aqi-value" id="aqiNumber">0</span>
+                <div class="aqi-status" id="aqiCategory">Good</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pollutant-grid">
+        <div class="pollutant-item neo-card">
+            <span class="pollutant-name">PM2.5</span>
+            <span class="pollutant-value" id="valPM25">--</span>
+            <div style="font-size:8px; color:var(--text-light); margin-top:2px">µg/m³</div>
+        </div>
+        <div class="pollutant-item neo-card">
+            <span class="pollutant-name">PM10</span>
+            <span class="pollutant-value" id="valPM10">--</span>
+            <div style="font-size:8px; color:var(--text-light); margin-top:2px">µg/m³</div>
+        </div>
+        <div class="pollutant-item neo-card">
+            <span class="pollutant-name">NO₂</span>
+            <span class="pollutant-value" id="valNO2">--</span>
+            <div style="font-size:8px; color:var(--text-light); margin-top:2px">ppb</div>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h3 class="section-title">ကျန်းမာရေး အကြံပြုချက်</h3>
+        
+        <div class="health-card neo-card">
+            <div class="icon-box neo-inset">🍃</div>
+            <div class="health-text" id="tipAir">...</div>
+        </div>
+
+        <div class="health-card neo-card">
+            <div class="icon-box neo-inset">🛡️</div>
+            <div class="health-text" id="tipMask">...</div>
+        </div>
+
+        <div class="health-card neo-card">
+            <div class="icon-box neo-inset">👟</div>
+            <div class="health-text" id="tipActivity">...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const DATA = [
+        { id: 'hln', name: 'လှိုင်မြို့နယ်', aqi: 42, pm25: 10.2, pm10: 22.4, no2: 8.1 },
+        { id: 'kmy', name: 'ကမာရွတ်', aqi: 58, pm25: 15.6, pm10: 34.1, no2: 12.4 },
+        { id: 'dgn', name: 'ဒဂုံမြို့နယ်', aqi: 112, pm25: 40.2, pm10: 65.8, no2: 18.9 },
+        { id: 'pbd', name: 'ပန်းဘဲတန်း', aqi: 165, pm25: 72.4, pm10: 98.1, no2: 24.5 },
+        { id: 'tmw', name: 'တာမွေ', aqi: 88, pm25: 29.3, pm10: 48.2, no2: 15.2 },
+        { id: 'myg', name: 'မရမ်းကုန်း', aqi: 75, pm25: 22.1, pm10: 42.3, no2: 11.2 },
+        { id: 'mgd', name: 'မင်္ဂလာဒုံ', aqi: 145, pm25: 58.1, pm10: 85.3, no2: 21.0 }
+    ];
+
+    const UI = {
+        clock: document.getElementById('currentTime'),
+        select: document.getElementById('stationSelect'),
+        dispTownship: document.getElementById('displayTownship'),
+        aqiVal: document.getElementById('aqiNumber'),
+        aqiCat: document.getElementById('aqiCategory'),
+        pm25: document.getElementById('valPM25'),
+        pm10: document.getElementById('valPM10'),
+        no2: document.getElementById('valNO2'),
+        tipAir: document.getElementById('tipAir'),
+        tipMask: document.getElementById('tipMask'),
+        tipActivity: document.getElementById('tipActivity')
+    };
+
+    let aqiInterval;
+
+    function getAqiInfo(aqi) {
+        if (aqi <= 50) return { label: 'Good', color: 'var(--aqi-good)', tips: ['လေကောင်းလေသန့် ရရှိနိုင်ရန် ပြတင်းပေါက်များ ဖွင့်ထားနိုင်သည်။', 'နှာခေါင်းစည်း တပ်ဆင်ရန် မလိုအပ်သေးပါ။', 'ကိုယ်လက်လှုပ်ရှားမှုများကို ပုံမှန်အတိုင်း ပြုလုပ်နိုင်သည်။'] };
+        if (aqi <= 100) return { label: 'Moderate', color: 'var(--aqi-moderate)', tips: ['လေဝင်လေထွက် ကောင်းမွန်အောင် ထားရှိနိုင်သည်။', 'ထိခိုက်လွယ်သူများ အပြင်ထွက်လျှင် သတိပြုသင့်သည်။', 'အပြင်တွင် လေ့ကျင့်ခန်း ပြုလုပ်ရန် သင့်တော်ပါသည်။'] };
+        if (aqi <= 150) return { label: 'Sensitive', color: 'var(--aqi-sensitive)', tips: ['ပြတင်းပေါက်များကို ပိတ်ထားရန် စဉ်းစားပါ။', 'အပြင်ထွက်လျှင် Mask တပ်ဆင်သင့်ပါသည်။', 'ပင်ပန်းသော လှုပ်ရှားမှုများကို လျှော့ချပါ။'] };
+        if (aqi <= 200) return { label: 'Unhealthy', color: 'var(--aqi-unhealthy)', tips: ['ပြတင်းပေါက်များကို ပိတ်ထားပါ။ လေစစ်စက် သုံးစွဲပါ။', 'အပြင်ထွက်လျှင် အရည်အသွေးမီ Mask ကို မဖြစ်မနေ တပ်ပါ။', 'အပြင်တွင် ကိုယ်လက်လှုပ်ရှားခြင်းကို ရှောင်ကြဉ်ပါ။'] };
+        return { label: 'Very Poor', color: 'var(--aqi-very-unhealthy)', tips: ['အိမ်တွင်း၌သာ နေထိုင်ပါ။', 'အပြင်သို့ လုံးဝ မထွက်သင့်ပါ။', 'ကိုယ်လက်လှုပ်ရှားမှုအားလုံး ရပ်နားပါ။'] };
+    }
+
+    function updateApp(station) {
+        UI.dispTownship.textContent = station.name;
+        UI.pm25.textContent = station.pm25;
+        UI.pm10.textContent = station.pm10;
+        UI.no2.textContent = station.no2;
+
+        // Animate AQI
+        clearInterval(aqiInterval);
+        let current = 0;
+        const target = station.aqi;
+        aqiInterval = setInterval(() => {
+            if (current >= target) {
+                clearInterval(aqiInterval);
+            } else {
+                current++;
+                UI.aqiVal.textContent = current;
+                const info = getAqiInfo(current);
+                UI.aqiCat.textContent = info.label;
+                UI.aqiCat.style.background = info.color;
+                UI.aqiVal.style.color = info.color;
+                
+                // Final tips update
+                if (current === target) {
+                    UI.tipAir.textContent = info.tips[0];
+                    UI.tipMask.textContent = info.tips[1];
+                    UI.tipActivity.textContent = info.tips[2];
+                }
+            }
+        }, 10);
+    }
+
+    // Init
+    window.onload = () => {
+        // Clock
+        setInterval(() => {
+            const d = new Date();
+            UI.clock.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }, 1000);
+        
+        // Select Options
+        DATA.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = s.name;
+            UI.select.appendChild(opt);
+        });
+
+        UI.select.addEventListener('change', e => {
+            const s = DATA.find(x => x.id === e.target.value);
+            updateApp(s);
+        });
+
+        updateApp(DATA[0]);
+    };
+</script>
+
+</body>
+</html>
+
